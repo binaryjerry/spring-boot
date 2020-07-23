@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.actuate.autoconfigure.health.HealthContributorAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.jdbc.DataSourceHealthContributorAutoConfiguration.RoutingDataSourceHealthIndicator;
 import org.springframework.boot.actuate.health.CompositeHealthContributor;
 import org.springframework.boot.actuate.health.NamedContributor;
 import org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator;
@@ -43,6 +44,7 @@ import static org.mockito.Mockito.mock;
  * Tests for {@link DataSourceHealthContributorAutoConfiguration}.
  *
  * @author Phillip Webb
+ * @author Julio Gomez
  */
 class DataSourceHealthContributorAutoConfigurationTests {
 
@@ -71,10 +73,38 @@ class DataSourceHealthContributorAutoConfigurationTests {
 	}
 
 	@Test
-	void runShouldFilterRoutingDataSource() {
+	void runWithRoutingAndEmbeddedDataSourceShouldIncludeRoutingDataSource() {
 		this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class, RoutingDatasourceConfig.class)
-				.run((context) -> assertThat(context).hasSingleBean(DataSourceHealthIndicator.class)
-						.doesNotHaveBean(CompositeHealthContributor.class));
+				.run((context) -> {
+					CompositeHealthContributor composite = context.getBean(CompositeHealthContributor.class);
+					assertThat(composite.getContributor("dataSource")).isInstanceOf(DataSourceHealthIndicator.class);
+					assertThat(composite.getContributor("routingDataSource"))
+							.isInstanceOf(RoutingDataSourceHealthIndicator.class);
+				});
+	}
+
+	@Test
+	void runWithRoutingAndEmbeddedDataSourceShouldNotIncludeRoutingDataSourceWhenIgnored() {
+		this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class, RoutingDatasourceConfig.class)
+				.withPropertyValues("management.health.db.ignore-routing-datasources:true").run((context) -> {
+					assertThat(context).doesNotHaveBean(CompositeHealthContributor.class);
+					assertThat(context).hasSingleBean(DataSourceHealthIndicator.class);
+					assertThat(context).doesNotHaveBean(RoutingDataSourceHealthIndicator.class);
+				});
+	}
+
+	@Test
+	void runWithOnlyRoutingDataSourceShouldIncludeRoutingDataSource() {
+		this.contextRunner.withUserConfiguration(RoutingDatasourceConfig.class)
+				.run((context) -> assertThat(context).hasSingleBean(RoutingDataSourceHealthIndicator.class));
+	}
+
+	@Test
+	void runWithOnlyRoutingDataSourceShouldCrashWhenIgnored() {
+		this.contextRunner.withUserConfiguration(RoutingDatasourceConfig.class)
+				.withPropertyValues("management.health.db.ignore-routing-datasources:true")
+				.run((context) -> assertThat(context).hasFailed().getFailure()
+						.hasRootCauseInstanceOf(IllegalArgumentException.class));
 	}
 
 	@Test

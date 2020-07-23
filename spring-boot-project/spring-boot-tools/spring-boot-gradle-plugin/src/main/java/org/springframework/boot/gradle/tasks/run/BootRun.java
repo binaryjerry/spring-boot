@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package org.springframework.boot.gradle.tasks.run;
 
 import java.lang.reflect.Method;
 
-import org.gradle.api.JavaVersion;
 import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.JavaExec;
@@ -72,7 +71,6 @@ public class BootRun extends JavaExec {
 	public void exec() {
 		if (this.optimizedLaunch) {
 			setJvmArgs(getJvmArgs());
-			JavaVersion.current();
 			if (!isJava13OrLater()) {
 				jvmArgs("-Xverify:none");
 			}
@@ -80,7 +78,7 @@ public class BootRun extends JavaExec {
 		}
 		if (System.console() != null) {
 			// Record that the console is available here for AnsiOutput to detect later
-			this.getEnvironment().put("spring.output.ansi.console-available", true);
+			getEnvironment().put("spring.output.ansi.console-available", true);
 		}
 		super.exec();
 	}

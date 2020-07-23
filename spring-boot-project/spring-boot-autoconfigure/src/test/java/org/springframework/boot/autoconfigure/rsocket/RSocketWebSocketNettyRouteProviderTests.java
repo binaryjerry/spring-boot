@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.HttpHandlerAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.error.ErrorWebFluxAutoConfiguration;
-import org.springframework.boot.rsocket.server.ServerRSocketFactoryCustomizer;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory;
 import org.springframework.boot.web.reactive.context.AnnotationConfigReactiveWebServerApplicationContext;
@@ -52,7 +51,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Brian Clozel
  */
-
 class RSocketWebSocketNettyRouteProviderTests {
 
 	@Test
@@ -77,7 +75,7 @@ class RSocketWebSocketNettyRouteProviderTests {
 					WebTestClient client = createWebTestClient(serverContext.getWebServer());
 					client.get().uri("/protocol").exchange().expectStatus().isOk().expectBody().jsonPath("name",
 							"http");
-					assertThat(WebConfiguration.customizerCallCount).isEqualTo(1);
+					assertThat(WebConfiguration.processorCallCount).isEqualTo(1);
 				});
 	}
 
@@ -95,7 +93,7 @@ class RSocketWebSocketNettyRouteProviderTests {
 	@Configuration(proxyBeanMethods = false)
 	static class WebConfiguration {
 
-		static int customizerCallCount = 0;
+		static int processorCallCount = 0;
 
 		@Bean
 		WebController webController() {
@@ -110,9 +108,10 @@ class RSocketWebSocketNettyRouteProviderTests {
 		}
 
 		@Bean
-		ServerRSocketFactoryCustomizer myRSocketFactoryCustomizer() {
+		@SuppressWarnings("deprecation")
+		org.springframework.boot.rsocket.server.ServerRSocketFactoryProcessor myRSocketFactoryProcessor() {
 			return (server) -> {
-				customizerCallCount++;
+				processorCallCount++;
 				return server;
 			};
 		}
